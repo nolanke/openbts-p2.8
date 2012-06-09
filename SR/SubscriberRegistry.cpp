@@ -269,6 +269,11 @@ SubscriberRegistry::Status SubscriberRegistry::imsiSet(string imsi, string key, 
 	return sqlUpdate(os.str());
 }
 
+string SubscriberRegistry::extenGet(string IMSI, string key)
+{
+	return sqlQuery(key, "dialdata_table", "dial", IMSI);
+}
+
 string SubscriberRegistry::getIMSI(string ISDN)
 {
 	if (ISDN.empty()) {
@@ -424,6 +429,23 @@ string SubscriberRegistry::getLastCLID()
   LOG(INFO) << "Querying the last CLID to be added to the dialdata_table";
   return sqlQueryMaxColumn("exten","dialdata_table");
 
+}
+
+
+/* String and uint conversion functions */
+
+string SubscriberRegistry::uintToString(uint32_t x)
+{
+	ostringstream os;
+	os << dec << x;
+	return os.str();
+}
+
+void SubscriberRegistry::stringToUint(string strUint, uint32_t *hInt)
+{
+	stringstream ssh;
+	ssh << dec << strUint;
+	ssh >> *hInt;
 }
 
 

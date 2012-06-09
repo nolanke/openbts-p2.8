@@ -76,6 +76,14 @@ class SubscriberRegistry {
 	string getIMSI(string ISDN);
 
 	/**
+	 * Get the extension for an IMSI (if it exists) as a string
+	 * @param IMSI The subscriber IMSI
+	 * @param key The database table key name
+	 */
+	string extenGet(string IMSI, string key);
+
+
+	/**
 		Given an IMSI, return the local CLID, which should be a numeric address.
 		@param IMSI The subscriber IMSI.
 	*/
@@ -147,6 +155,20 @@ class SubscriberRegistry {
 	 @param none
 	*/
 	string getLastCLID();
+
+	/**
+	 * Converts a uint to a string representation of the uint value
+	 * @param x A 32-bit uint
+	 */
+	string uintToString(uint32_t x);
+
+	/**
+	 * Converts a string represention of a uint to a uint
+	 * @param strUint
+	 * @param *hInt A pointer to the uint value
+	 */
+	void stringToUint(string strUint, uint32_t *hInt);
+
 
 	private:
 

@@ -134,6 +134,30 @@ bool sendWelcomeMessage(const char* messageName, const char* shortCodeName, cons
 }
 
 /**
+	Send a given welcome message from a given short code stating the assigned phone number.
+	@return true if it was sent
+*/
+bool sendWelcomeMessageWithPhoneNumber(const char* messageName, const char* shortCodeName,
+				  const char *IMSI, LogicalChannel* DCCH, const char *whiteListCode = NULL, std::string CLID = NULL)
+{
+	if (!gConfig.defines(messageName)) return false;
+
+	LOG(INFO) << "sending " << messageName << " message to handset";
+
+	ostringstream message;
+	message << gConfig.getStr(messageName) << " IMSI:" << IMSI << " Your number is: " << CLID;
+	if (whiteListCode) {
+		message << ", white-list code: " << whiteListCode;
+	}
+	// This returns when delivery is acked in L3.
+	deliverSMSToMS(
+		gConfig.getStr(shortCodeName).c_str(),
+		message.str().c_str(), "text/plain",
+		random()%7,DCCH);
+	return true;
+}
+
+/**
 	Controller for the Location Updating transaction, GSM 04.08 4.4.4.
 	@param lur The location updating request.
 	@param DCCH The Dm channel to the MS, which will be released by the function.
@@ -188,6 +212,8 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 	// This allows us to configure Open Registration
 	bool openRegistration = gConfig.defines("Control.LUR.OpenRegistration");
 
+	string name = string("IMSI") + IMSI;
+
 	// Query for IMEI?
 	if (gConfig.defines("Control.LUR.QueryIMEI")) {
 		DCCH->send(L3IdentityRequest(IMEIType));
@@ -207,7 +233,6 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 		} 
 
 		//query subscriber registry for old imei, update if neccessary
-		string name = string("IMSI") + IMSI;
 		string old_imei = gSubscriberRegistry.imsiGet(name, "hardware");
 		
 		//if we have a new imei and either there's no old one, or it is different...
@@ -265,17 +290,51 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 		LOG(INFO) << "registration ALLOWED: " << mobileID;
 	}
 
+	string current_exten("");
+	current_exten  = gSubscriberRegistry.extenGet(name,"exten");
+
+	//Check if the IMSI has already been assigned a CLID
+	if (current_exten.empty()){
+
+		//A new subscriber wishes to use the network
+	   LOG(INFO) << "Adding a new phone to the database";
+
+	   //Find the last phone number (CLID) that was assigned
+	   //In this case, we look for the maximum CLID value from the database
+	   string maxCLID = gSubscriberRegistry.getLastCLID();
+	   LOG(INFO) << "Current max CLID is " << maxCLID;
+	   uint32_t intCLID = 0;
+
+	   //Convert CLID to an integer
+	   gSubscriberRegistry.stringToUint(maxCLID,&intCLID);
+
+	   //Increment the CLID to create a new phone number for the phone
+	   intCLID++;
+
+	   //Convert CLID to a string
+	   current_exten  = gSubscriberRegistry.uintToString(intCLID);
+
+	   LOG(INFO) << name << " will be assigned the CLID : " << current_exten;
+
+	   //Insert the new IMSI and CLID into the dialdata_table and sipbuddies database
+	   gSubscriberRegistry.addUser(name,current_exten);
+	}
+	else{
+		// Do nothing. The subscriber has already been assigned a number on this network
+	}
 
 	// Send the "short name" and time-of-day.
 	if (IMSIAttach && gConfig.defines("GSM.Identity.ShortName")) {
-		DCCH->send(L3MMInformation(gConfig.getStr("GSM.Identity.ShortName").c_str()));
+		DCCH->send(
+				L3MMInformation(
+						gConfig.getStr("GSM.Identity.ShortName").c_str()));
 	}
 	// Accept. Make a TMSI assignment, too, if needed.
 	if (preexistingTMSI || !gConfig.defines("Control.LUR.SendTMSIs")) {
 		DCCH->send(L3LocationUpdatingAccept(gBTS.LAI()));
 	} else {
 		assert(newTMSI);
-		DCCH->send(L3LocationUpdatingAccept(gBTS.LAI(),newTMSI));
+		DCCH->send(L3LocationUpdatingAccept(gBTS.LAI(), newTMSI));
 		// Wait for MM TMSI REALLOCATION COMPLETE (0x055b).
 		L3Frame* resp = DCCH->recv(1000);
 		// FIXME -- Actually check the response type.
@@ -296,12 +355,18 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 
 	// If this is an IMSI attach, send a welcome message.
 	if (IMSIAttach) {
+	  LOG(INFO) << "ISMI attach - sending welcome message";
+
 		if (success) {
-			sendWelcomeMessage( "Control.LUR.NormalRegistration.Message",
-				"Control.LUR.NormalRegistration.ShortCode", IMSI, DCCH);
+			//Send the welcome message and include the subscriber's new phone number
+			sendWelcomeMessageWithPhoneNumber( "Control.LUR.NormalRegistration.Message",
+							   "Control.LUR.NormalRegistration.ShortCode", IMSI, DCCH, NULL, current_exten);
+
 		} else {
-			sendWelcomeMessage( "Control.LUR.OpenRegistration.Message",
-				"Control.LUR.OpenRegistration.ShortCode", IMSI, DCCH);
+			//Send the welcome message and include the subscriber's new phone number
+			sendWelcomeMessageWithPhoneNumber( "Control.LUR.OpenRegistration.Message",
+							   "Control.LUR.OpenRegistration.ShortCode", IMSI, DCCH, NULL,current_exten);
+
 		}
 	}
 
