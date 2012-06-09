@@ -234,7 +234,20 @@ string SubscriberRegistry::sqlQuery(string unknownColumn, string table, string k
 	}
 }
 
-
+string SubscriberRegistry::sqlQueryMaxColumn(string unknownColumn, string table)
+{
+	char *result = NULL;
+	SubscriberRegistry::Status st;
+	ostringstream os;
+	os << "SELECT MAX(" << unknownColumn << ") FROM " << table;
+	st = sqlLocal(os.str().c_str(), &result);
+	if ((st == SUCCESS) && result) {
+		LOG(INFO) << "result = " << result;
+		return result;
+	} else {
+		return "";
+	}
+}
 
 SubscriberRegistry::Status SubscriberRegistry::sqlUpdate(string stmt)
 {
@@ -402,6 +415,17 @@ bool SubscriberRegistry::useGateway(string ISDN)
 	int cmp = strncmp(ISDN.c_str(),"88351000125",11);
 	return cmp!=0;
 }
+
+// Gets the maximum CLID value from the dialdata_table
+// This is used for basic dynamic number assignment
+string SubscriberRegistry::getLastCLID()
+{
+
+  LOG(INFO) << "Querying the last CLID to be added to the dialdata_table";
+  return sqlQueryMaxColumn("exten","dialdata_table");
+
+}
+
 
 
 

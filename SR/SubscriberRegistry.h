@@ -141,6 +141,13 @@ class SubscriberRegistry {
 	*/
 	Status RRLPUpdate(string name, string lat, string lon, string err);
 
+
+	/**
+	 Gets the maximum CLID value from the dialdata_table
+	 @param none
+	*/
+	string getLastCLID();
+
 	private:
 
 
@@ -152,6 +159,14 @@ class SubscriberRegistry {
 	Status sqlLocal(const char* stmt, char **resultptr);
 
 	string sqlQuery(string unknownColumn, string table, string knownColumn, string knownValue);
+
+
+	/**
+	 * Run a SQL query to determine the maximum CLID (phone number) value in the database
+	 * @param unknownColumn the column name to query
+	 * @param table the table name
+	 */
+	string sqlQueryMaxColumn(string unknownColumn, string table);
 
 	/**
 		Run an sql update.
