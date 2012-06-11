@@ -145,7 +145,10 @@ bool sendWelcomeMessageWithPhoneNumber(const char* messageName, const char* shor
 	LOG(INFO) << "sending " << messageName << " message to handset";
 
 	ostringstream message;
-	message << gConfig.getStr(messageName) << " IMSI:" << IMSI << " Your number is: " << CLID;
+	message << gConfig.getStr(messageName) << " IMSI:" << IMSI << ". " << gConfig.getStr("Control.LUR.Registration.Extension.Message") << CLID;
+
+	LOG(INFO) << message;
+
 	if (whiteListCode) {
 		message << ", white-list code: " << whiteListCode;
 	}
@@ -290,10 +293,10 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 		LOG(INFO) << "registration ALLOWED: " << mobileID;
 	}
 
+	//Check if the IMSI has already been assigned a CLID
 	string current_exten("");
 	current_exten  = gSubscriberRegistry.extenGet(name,"exten");
 
-	//Check if the IMSI has already been assigned a CLID
 	if (current_exten.empty()){
 
 		//A new subscriber wishes to use the network
@@ -353,20 +356,41 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 		}
 	}
 
+	// Check if the extension/phone number should be included in the welcome message
+	bool sendExtensionNumber = gConfig.defines("Control.LUR.Registration.Extension.Message");
+
 	// If this is an IMSI attach, send a welcome message.
 	if (IMSIAttach) {
 	  LOG(INFO) << "ISMI attach - sending welcome message";
 
 		if (success) {
-			//Send the welcome message and include the subscriber's new phone number
-			sendWelcomeMessageWithPhoneNumber( "Control.LUR.NormalRegistration.Message",
+			if (sendExtensionNumber)
+			{
+				LOG(INFO) << "ISMI attach - including the extension number";
+				//Send the welcome message and include the subscriber's phone number
+				sendWelcomeMessageWithPhoneNumber( "Control.LUR.NormalRegistration.Message",
 							   "Control.LUR.NormalRegistration.ShortCode", IMSI, DCCH, NULL, current_exten);
+			}
+			else
+			{
+				sendWelcomeMessage( "Control.LUR.NormalRegistration.Message",
+							   "Control.LUR.NormalRegistration.ShortCode", IMSI, DCCH, NULL);
+
+			}
 
 		} else {
 			//Send the welcome message and include the subscriber's new phone number
-			sendWelcomeMessageWithPhoneNumber( "Control.LUR.OpenRegistration.Message",
+			if (sendExtensionNumber)
+			{
+				LOG(INFO) << "ISMI attach - including the extension number";
+				sendWelcomeMessageWithPhoneNumber( "Control.LUR.OpenRegistration.Message",
 							   "Control.LUR.OpenRegistration.ShortCode", IMSI, DCCH, NULL,current_exten);
-
+			}
+			else
+			{
+				sendWelcomeMessage( "Control.LUR.OpenRegistration.Message",
+							   "Control.LUR.OpenRegistration.ShortCode", IMSI, DCCH, NULL);
+			}
 		}
 	}
 
