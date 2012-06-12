@@ -296,6 +296,14 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 	//Check if the IMSI has already been assigned a CLID
 	string current_exten("");
 	current_exten  = gSubscriberRegistry.extenGet(name,"exten");
+	uint32_t extensionNumberBase = 0;
+
+	//Find out if an extension numbering scheme has been specified in the configuration
+	if (gConfig.defines("Control.LUR.Registration.Extension.Start"))
+	{
+		//Use this number as the base figure for new extensions
+		extensionNumberBase = gConfig.getNum("Control.LUR.Registration.Extension.Start");
+	}
 
 	if (current_exten.empty()){
 
@@ -305,16 +313,23 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 	   //Find the last phone number (CLID) that was assigned
 	   //In this case, we look for the maximum CLID value from the database
 	   string maxCLID = gSubscriberRegistry.getLastCLID();
+
 	   LOG(INFO) << "Current max CLID is " << maxCLID;
 	   uint32_t intCLID = 0;
 
 	   //Convert CLID to an integer
 	   gSubscriberRegistry.stringToUint(maxCLID,&intCLID);
 
-	   //Increment the CLID to create a new phone number for the phone
-	   intCLID++;
+	   if (intCLID >= extensionNumberBase){
+		   //Increment the CLID to create a new phone number for the phone
+		   intCLID++;
+	   }
+	   else{
+		   //Assign the first extension number from the base figure specified in the OpenBTS configuration database
+		   intCLID = extensionNumberBase;
+	   }
 
-	   //Convert CLID to a string
+	   //Convert the CLID to a string
 	   current_exten  = gSubscriberRegistry.uintToString(intCLID);
 
 	   LOG(INFO) << name << " will be assigned the CLID : " << current_exten;
