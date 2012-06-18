@@ -28,6 +28,8 @@ GLOBALS_INCLUDEDIR = $(top_srcdir)/Globals
 CLI_INCLUDEDIR = $(top_srcdir)/CLI
 SQLITE_INCLUDEDIR = $(top_srcdir)/sqlite3
 SR_INCLUDEDIR = $(top_srcdir)/SR
+MYSQLCPPCONN_INCLUDEDIR = /usr/include/cppconn
+MYSQLCLIENT_INCLUDEDIR = /usr/include/mysql
 
 STD_DEFINES_AND_INCLUDES = \
 	-I$(COMMON_INCLUDEDIR) \
@@ -39,7 +41,9 @@ STD_DEFINES_AND_INCLUDES = \
 	-I$(GLOBALS_INCLUDEDIR) \
 	-I$(CLI_INCLUDEDIR) \
 	-I$(SR_INCLUDEDIR) \
-	-I$(SQLITE_INCLUDEDIR)
+	-I$(SQLITE_INCLUDEDIR) \
+	-I$(MYSQLCPPCONN_INCLUDEDIR) \
+	-I$(MYSQLCLIENT_INCLUDEDIR)
 
 COMMON_LA = $(top_builddir)/CommonLibs/libcommon.la
 GSM_LA = $(top_builddir)/GSM/libGSM.la
@@ -51,5 +55,8 @@ GLOBALS_LA = $(top_builddir)/Globals/libglobals.la
 CLI_LA = $(top_builddir)/CLI/libcli.la
 SR_LA = $(top_builddir)/SR/libSR.la
 SQLITE_LA = $(top_builddir)/sqlite3/libsqlite.la
+MYSQLCPPCONN_LA = /usr/lib/libmysqlcppconn.a
+MYSQLCLIENT_LA = /usr/lib/libmysqlclient.a
+LIBZ_LA = /usr/lib/i386-linux-gnu/libz.a
 
 MOSTLYCLEANFILES = *~

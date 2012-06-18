@@ -33,7 +33,8 @@ libcommon_la_SOURCES = \
 	Timeval.cpp \
 	Logger.cpp \
 	URLEncode.cpp \
-	Configuration.cpp
+	Configuration.cpp \
+	EventLogger.cpp
 
 noinst_PROGRAMS = \
 	BitVectorTest \
@@ -44,7 +45,8 @@ noinst_PROGRAMS = \
 	VectorTest \
 	ConfigurationTest \
 	LogTest \
-	F16Test
+	F16Test \
+	EventLoggerTest
 
 noinst_HEADERS = \
 	BitVector.h \
@@ -58,7 +60,8 @@ noinst_HEADERS = \
 	URLEncode.h \
 	Configuration.h \
 	F16.h \
-	Logger.h
+	Logger.h \
+	EventLogger.h
 
 BitVectorTest_SOURCES = BitVectorTest.cpp
 BitVectorTest_LDADD = libcommon.la
@@ -87,6 +90,9 @@ LogTest_SOURCES = LogTest.cpp
 LogTest_LDADD = libcommon.la $(SQLITE_LA)
 
 F16Test_SOURCES = F16Test.cpp
+
+EventLoggerTest_SOURCES = EventLoggerTest.cpp
+EventLoggerTest_LDADD =  libcommon.la $(MYSQLCPPCONN_LA) $(MYSQLCLIENT_LA) $(LIBZ_LA)
 
 MOSTLYCLEANFILES += testSource testDestination
 
