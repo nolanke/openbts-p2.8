@@ -10,9 +10,9 @@ INSERT INTO "CONFIG" VALUES('Control.GSMTAP.TargetIP',NULL,0,1,'Target IP addres
 INSERT INTO "CONFIG" VALUES('Control.LUR.AttachDetach',1,0,0,'Attach/detach flag.  Set to 1 to use attach/detach procedure, 0 otherwise.  This will make initial LUR more prompt.  It will also cause an un-regstration if the handset powers off and really heavy LUR loads in areas with spotty coverage.');
 INSERT INTO "CONFIG" VALUES('Control.LUR.FailedRegistration.Message','Your handset is not provisioned for this network. ',0,1,'If defined, send this text message, followed by the IMSI, to unprovisioned handsets that are denied  registration.');
 INSERT INTO "CONFIG" VALUES('Control.LUR.FailedRegistration.ShortCode','1000',0,1,'The return address for the failed registration message.  If the message is defined, this must also be defined.');
-INSERT INTO "CONFIG" VALUES('Control.LUR.NormalRegistration.Message',NULL,0,1,'If defined, send this text message, followed by the IMSI, to provisioned handsets when they attach on Um.');
+INSERT INTO "CONFIG" VALUES('Control.LUR.NormalRegistration.Message','Welcome back to the GSM test network : ',0,1,'If defined, send this text message, followed by the IMSI, to provisioned handsets when they attach on Um.');
 INSERT INTO "CONFIG" VALUES('Control.LUR.NormalRegistration.ShortCode','0000',0,1,'The return address for the normal registration message.  If the message is defined, this must also be defined.');
-INSERT INTO "CONFIG" VALUES('Control.LUR.OpenRegistration',NULL,0,1,'If not NULL, allow unprovisioned handsets to attach in Um.');
+INSERT INTO "CONFIG" VALUES('Control.LUR.OpenRegistration',1,0,1,'If not NULL, allow unprovisioned handsets to attach in Um.');
 INSERT INTO "CONFIG" VALUES('Control.LUR.OpenRegistration.Message','Welcome to the GSM test network.  Your IMSI is ',0,1,'If defined, send this text message, followed by the IMSI, to unprovisioned handsets when they attach on Um due to open registration.');
 INSERT INTO "CONFIG" VALUES('Control.LUR.Registration.Extension.Start','3000',0,1,'If not NULL, assigns new extension numbers from this starting number base');
 INSERT INTO "CONFIG" VALUES('Control.LUR.Registration.Extension.Message','Your phone number is ',0,1,'If defined, include this phone number notification message in the open and normal registration messages.');
