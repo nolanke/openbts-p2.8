@@ -57,6 +57,14 @@
 #include <SIPEngine.h>
 
 #include <Logger.h>
+
+#define USE_EVENT_LOGGING
+
+#ifdef USE_EVENT_LOGGING
+#include <EventLogger.h>
+#endif
+
+
 #undef WARNING
 
 using namespace std;
@@ -257,6 +265,21 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 {
 	LOG(DEBUG) << "from " << transaction->subscriber() << " message " << *message;
 
+	std:string calling = std::string(transaction->calling().digits());
+	std::string called = std::string(transaction->called().digits());
+	std::string subscriber = std::string(transaction->subscriber().digits());
+
+	std::string IMSI   = std::string(transaction->subscriber().digits());
+	std::string name = "IMSI" + IMSI;
+	std::string dest = calling;
+	if (dest.empty() ){
+		dest = called;
+	}
+
+#ifdef USE_EVENT_LOGGING
+	EventLogger *eventLogger = EventLogger::getInstance();
+#endif
+
 	// FIXME -- This dispatch section should be something more efficient with PD and MTI swtiches.
 
 	// Actually check state before taking action.
@@ -268,6 +291,12 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// Connect Acknowledge
 	if (dynamic_cast<const GSM::L3ConnectAcknowledge*>(message)) {
 		LOG(INFO) << "GSM Connect Acknowledge " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM connect acknowledge " + dest) == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 		transaction->resetTimers();
 		transaction->GSMState(GSM::Active);
 		return false;
@@ -277,6 +306,12 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// GSM 04.08 5.2.2.5 and 5.2.2.6
 	if (dynamic_cast<const GSM::L3Connect*>(message)) {
 		LOG(INFO) << "GSM Connect " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM connect to " + dest) == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 		transaction->resetTimers();
 		transaction->GSMState(GSM::Active);
 		return false;
@@ -287,6 +322,12 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// "Call Confirmed" is the GSM MTC counterpart to "Call Proceeding"
 	if (dynamic_cast<const GSM::L3CallConfirmed*>(message)) {
 		LOG(INFO) << "GSM Call Confirmed " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM call confirmed to " + dest) == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 		transaction->resetTimer("303");
 		transaction->setTimer("301");
 		transaction->GSMState(GSM::MTCConfirmed);
@@ -297,6 +338,12 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// GSM 04.08 5.2.2.3.2
 	if (dynamic_cast<const GSM::L3Alerting*>(message)) {
 		LOG(INFO) << "GSM Alerting " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM alerting " + dest) == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 		transaction->resetTimer("310");
 		transaction->setTimer("301");
 		transaction->GSMState(GSM::CallReceived);
@@ -312,6 +359,12 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// GSM 04.08 5.4.3.2
 	if (dynamic_cast<const GSM::L3Disconnect*>(message)) {
 		LOG(INFO) << "GSM Disconnect " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM disconnect") == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 		/* late RLLP request */
 		if (gConfig.defines("Control.Call.QueryRRLP.Late")) {
 			// Query for RRLP
@@ -349,6 +402,12 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// Release (2nd step of MTD)
 	if (dynamic_cast<const GSM::L3Release*>(message)) {
 		LOG(INFO) << "GSM Release " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM release") == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 		/* late RLLP request */
 		if (gConfig.defines("Control.Call.QueryRRLP.Late")) {
 			// Query for RRLP
@@ -368,6 +427,13 @@ bool callManagementDispatchGSM(TransactionEntry *transaction, GSM::LogicalChanne
 	// GSM 04.08 5.4.3.4
 	if (dynamic_cast<const GSM::L3ReleaseComplete*>(message)) {
 		LOG(INFO) << "GSM Release Complete " << *transaction;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"GSM release complete from " + dest) == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
+
 		transaction->resetTimers();
 		LCH->send(GSM::L3ChannelRelease());
 		transaction->GSMState(GSM::NullState);
