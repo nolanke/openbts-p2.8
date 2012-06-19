@@ -8,12 +8,10 @@
 #ifndef EVENTLOGGER_H_
 #define EVENTLOGGER_H_
 
-using namespace std;
+//To avoid #define conflicts between MySQL datatype.h and osip_const.h
+#undef TIMESTAMP
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <stdexcept>
+using namespace std;
 
 #include <mysql_connection.h>
 #include <mysql_driver.h>

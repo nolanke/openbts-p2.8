@@ -39,6 +39,7 @@
 #include <SIPInterface.h>
 
 #include <Logger.h>
+#include <EventLogger.h>
 #undef WARNING
 
 

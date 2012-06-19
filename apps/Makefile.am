@@ -42,7 +42,10 @@ OpenBTS_LDADD = \
 	$(SQLITE_LA) \
 	$(SMS_LA) \
 	$(OSIP_LIBS) \
-	$(ORTP_LIBS)
+	$(ORTP_LIBS) \
+	$(MYSQLCPPCONN_LA)\
+	$(MYSQLCLIENT_LA) \
+	$(LIBZ_LA)
 
 OpenBTSCLI_SOURCES = OpenBTSCLI.cpp
 OpenBTSDo_SOURCES = OpenBTSDo.cpp

@@ -45,6 +45,7 @@ ConfigurationTable gConfig("/etc/OpenBTS/OpenBTS.db");
 #include <Globals.h>
 
 #include <Logger.h>
+#include <EventLogger.h>
 #include <CLI.h>
 #include <PowerManager.h>
 #include <Configuration.h>

@@ -51,6 +51,13 @@ using namespace SIP;
 
 #include <Regexp.h>
 #include <Logger.h>
+
+#define USE_EVENT_LOGGING
+
+#ifdef USE_EVENT_LOGGING
+#include <EventLogger.h>
+#endif
+
 #undef WARNING
 
 
@@ -170,6 +177,10 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 	assert(DCCH);
 	assert(lur);
 	LOG(INFO) << *lur;
+
+#ifdef USE_EVENT_LOGGING
+	EventLogger *eventLogger = EventLogger::getInstance();
+#endif
 
 	// The location updating request gets mapped to a SIP
 	// registration with the Asterisk server.
@@ -336,9 +347,36 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 
 	   //Insert the new IMSI and CLID into the dialdata_table and sipbuddies database
 	   gSubscriberRegistry.addUser(name,current_exten);
+
+#ifdef USE_EVENT_LOGGING
+	   //Add the new IMSI to the MySQL database
+	   LOG(INFO) << "Adding the new IMSI: " << name << " and assigned phone number: " << current_exten << " to the MySQL database";
+	   if (eventLogger->insertIMSIAndNumber(name,current_exten) == false){
+		   LOG(ERR) << "Could not insert the IMSI and phone number into the openbts MySQL database";
+	   }
+	   else{
+		   if (eventLogger->insertEvent(name,"Assigned the phone number " + current_exten)== false){
+		   		   LOG(ERR) << "Could not log an event to the MySQL openbts database";
+		   }
+	   }
+#endif
 	}
 	else{
-		// Do nothing. The subscriber has already been assigned a number on this network
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"Rejoined the network and assigned " + current_exten) == false){
+			//The IMSI may not already in the database - happens due to MySQl and SQlite databases being out of sync
+
+			//Insert the IMSI and phone number in the database
+			if (eventLogger->insertIMSIAndNumber(name,current_exten) == false){
+				LOG(ERR) << "Could not insert the IMSI and phone number into the openbts MySQL database";
+			}
+
+			//Try inserting the event again
+			if (eventLogger->insertEvent(name,"Rejoined the network and assigned " + current_exten) == false){
+				LOG(ERR) << "Could not insert the event information into the openbts MySQL database";
+			}
+		}
+#endif
 	}
 
 	// Send the "short name" and time-of-day.
@@ -379,6 +417,12 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 	  LOG(INFO) << "ISMI attach - sending welcome message";
 
 		if (success) {
+
+#ifdef USE_EVENT_LOGGING
+			if (eventLogger->insertEvent(name,"Rejoined the network - assigned " + current_exten + " - sending welcome message") == false){
+				LOG(ERR) << "Could not insert the event information into the openbts MySQL database";
+			}
+#endif
 			if (sendExtensionNumber)
 			{
 				LOG(INFO) << "ISMI attach - including the extension number";
@@ -394,6 +438,11 @@ void Control::LocationUpdatingController(const L3LocationUpdatingRequest* lur, L
 			}
 
 		} else {
+#ifdef USE_EVENT_LOGGING
+			if (eventLogger->insertEvent(name,"Joined the network - assigned " + current_exten + " - sending welcome message") == false){
+						LOG(ERR) << "Could not insert the event information into the openbts MySQL database";
+					}
+#endif
 			//Send the welcome message and include the subscriber's new phone number
 			if (sendExtensionNumber)
 			{
