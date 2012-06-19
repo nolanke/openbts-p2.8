@@ -66,6 +66,13 @@ using namespace SMS;
 using namespace SIP;
 
 #include <Logger.h>
+
+#define USE_EVENT_LOGGING
+
+#ifdef USE_EVENT_LOGGING
+#include <EventLogger.h>
+#endif
+
 #undef WARNING
 
 /**
@@ -177,6 +184,12 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 	assert(LCH);
 	assert(LCH->type() != GSM::SACCHType);
 
+
+#ifdef USE_EVENT_LOGGING
+	EventLogger *eventLogger = EventLogger::getInstance();
+#endif
+
+
 	LOG(INFO) << "MOSMS, req " << *req;
 
 	// If we got a TMSI, find the IMSI.
@@ -188,6 +201,17 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 	TransactionEntry *transaction = new TransactionEntry(gConfig.getStr("SIP.Proxy.SMS").c_str(),mobileID,LCH);
 	gTransactionTable.add(transaction);
 	LOG(DEBUG) << "MOSMS: transaction: " << *transaction;
+
+	std:string calling = std::string(transaction->calling().digits());
+	std::string called = std::string(transaction->called().digits());
+	std::string subscriber = std::string(transaction->subscriber().digits());
+
+	std::string IMSI   = std::string(transaction->subscriber().digits());
+	std::string name = "IMSI" + IMSI;
+	std::string dest = calling;
+	if (dest.empty() ){
+		dest = called;
+	}
 
 	// See GSM 04.11 Arrow Diagram A5 for the transaction
 	// Step 1	MS->Network	CP-DATA containing RP-DATA
@@ -208,6 +232,13 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 
 	// Let the phone know we're going ahead with the transaction.
 	LOG(INFO) << "sending CMServiceAccept";
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"sending CMServiceAccept " + dest) == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
+
 	LCH->send(GSM::L3CMServiceAccept());
 	// Wait for SAP3 to connect.
 	// The first read on SAP3 is the ESTABLISH primitive.
@@ -218,6 +249,13 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 	// Should be CP-DATA, containing RP-DATA.
 	GSM::L3Frame *CM = getFrameSMS(LCH);
 	LOG(DEBUG) << "data from MS " << *CM;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"data from MS ") == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
+
 	if (CM->MTI()!=CPMessage::DATA) {
 		LOG(NOTICE) << "unexpected SMS CP message with TI=" << CM->MTI();
 		throw UnexpectedMessage();
@@ -279,6 +317,12 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 		throw UnexpectedMessage();
 	}
 	LOG(DEBUG) << "ack from MS: " << *CM;
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"ack from MS ") == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 	CPAck ack;
 	ack.parse(*CM);
 	LOG(INFO) << "CPAck " << ack;
@@ -295,6 +339,12 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 	LCH->send(GSM::L3ChannelRelease());
 	gTransactionTable.remove(transaction);
 	LOG(INFO) << "closing the Um channel";
+
+#ifdef USE_EVENT_LOGGING
+		if (eventLogger->insertEvent(name,"closing the Um channel") == false){
+			LOG(ERR) << "Could not log event to the openBTS MySQL database";
+		}
+#endif
 }
 
 
@@ -302,6 +352,11 @@ void Control::MOSMSController(const GSM::L3CMServiceRequest *req, GSM::LogicalCh
 
 bool Control::deliverSMSToMS(const char *callingPartyDigits, const char* message, const char* contentType, unsigned L3TI, GSM::LogicalChannel *LCH)
 {
+
+#ifdef USE_EVENT_LOGGING
+	EventLogger *eventLogger = EventLogger::getInstance();
+#endif
+
 	if (!LCH->multiframeMode(3)) {
 		// Start ABM in SAP3.
 		LCH->send(GSM::ESTABLISH,3);
@@ -441,6 +496,10 @@ void Control::MTSMSController(TransactionEntry *transaction, GSM::LogicalChannel
 {
 	assert(LCH);
 	assert(transaction);
+
+#ifdef USE_EVENT_LOGGING
+	EventLogger *eventLogger = EventLogger::getInstance();
+#endif
 
 	// See GSM 04.11 Arrow Diagram A5 for the transaction
 	// Step 1	Network->MS	CP-DATA containing RP-DATA

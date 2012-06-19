@@ -71,10 +71,6 @@ using namespace std;
 using namespace Control;
 
 
-
-
-
-
 /**
 	Return an even UDP port number for the RTP even/odd pair.
 */
